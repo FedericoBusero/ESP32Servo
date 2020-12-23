@@ -10,11 +10,28 @@
 
 // initialize the class variable ServoCount
 int ESP32PWM::PWMCount = -1;              // the total number of attached servos
+bool  ESP32PWM::explicateAllocationMode=false;
 ESP32PWM * ESP32PWM::ChannelUsed[NUM_PWM]; // used to track whether a channel is in service
 long ESP32PWM::timerFreqSet[4] = { -1, -1, -1, -1 };
 int ESP32PWM::timerCount[4] = { 0, 0, 0, 0 };
 // The ChannelUsed array elements are 0 if never used, 1 if in use, and -1 if used and disposed
 // (i.e., available for reuse)
+/**
+ * allocateTimer
+ * @param a timer number 0-3 indicating which timer to allocate in this library
+ * Switch to explicate allocation mode
+ *
+ */
+void ESP32PWM::allocateTimer(int timerNumber){
+	if(timerNumber<0 || timerNumber>3)
+		return;
+	if(ESP32PWM::explicateAllocationMode==false){
+		ESP32PWM::explicateAllocationMode=true;
+		for(int i=0;i<4;i++)
+			ESP32PWM::timerCount[i]=4;// deallocate all timers to start mode
+	}
+	ESP32PWM::timerCount[timerNumber]=0;
+}
 
 ESP32PWM::ESP32PWM() {
 	resolutionBits = 8;
@@ -219,7 +236,12 @@ void ESP32PWM::attachPin(uint8_t pin) {
 	} else {
 		Serial.println(
 				"ERROR PWM channel unavailible on pin requested! " + String(pin)
-						+ "\r\nPWM availible on: 2,4,5,12-19,21-23,25-27,32-33");
+#if defined(ARDUINO_ESP32S2_DEV)
+						+ "\r\nPWM availible on: 1-21,26,33-42"
+#else
+						+ "\r\nPWM availible on: 2,4,5,12-19,21-23,25-27,32-33"
+#endif
+		);
 		return;
 	}
 	//Serial.print(" on pin "+String(pin));
